@@ -74,9 +74,8 @@ int part1() {
 	return safe_count;
 }
 
-int level_loop(char **token) {
+int level_loop(char **token, int skip) {
 	int last_token = -1;
-	bool is_safe = true;
 	int faults = 0;
 
 	// 0 is not set, 1 is asc, 2 is desc
@@ -85,6 +84,12 @@ int level_loop(char **token) {
 	int c = 0;
 	while (*token != NULL) {
 		int item = atoi(*token);
+		*token = strtok(NULL, " ");
+
+		// printf("%i", skip);
+		// if (c == skip) {
+		// 	continue;
+		// }
 
 		// First one should always pass
 		if (c == 0) {
@@ -123,7 +128,6 @@ int level_loop(char **token) {
 
 		last_token = item;
 		c++;
-		*token = strtok(NULL, " ");
 	}
 
 	return faults;
@@ -139,19 +143,34 @@ int part2() {
 
 	while (fgets(content, 100, fptr)) {
 		char *token = strtok(content, " ");
-		int faults = level_loop(&token);
+
+		int tokenlen = strlen(content);
+		printf("%i", tokenlen);
+		int faults = level_loop(&token, -1);
+
+		if (token == NULL) {
+			continue;
+		}
 
 		if (faults > 1) {
 			continue;
 		}
 
+		bool safe = false;
+
 		if (faults == 1) {
-			faults = level_loop(&token);
+			for (int i = 0; i < tokenlen; i++) {
+				int new = level_loop(&token, i);
+
+				if (level_loop(&token, i)) {
+					safe = true;
+				}
+			}
 		}
 
-		// if (faults == 0) {
-		// 	safe_count += 1;
-		// }
+		if (faults == 0 || safe == true) {
+			safe_count += 1;
+		}
 	}
 
 	return safe_count;
