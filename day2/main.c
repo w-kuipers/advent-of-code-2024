@@ -142,10 +142,9 @@ int part2() {
 	fptr = fopen("small-input.txt", "r");
 
 	while (fgets(content, 100, fptr)) {
+		int tokenlen = strlen(content);
 		char *token = strtok(content, " ");
 
-		int tokenlen = strlen(content);
-		printf("%i", tokenlen);
 		int faults = level_loop(&token, -1);
 
 		if (token == NULL) {
