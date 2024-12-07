@@ -74,22 +74,25 @@ int part1() {
 	return safe_count;
 }
 
-int level_loop(char **token, int skip) {
+int level_loop(char *content, int skip) {
 	int last_token = -1;
 	int faults = 0;
+
+	char *token = strtok(content, " ");
 
 	// 0 is not set, 1 is asc, 2 is desc
 	int direction = 0;
 
 	int c = 0;
-	while (*token != NULL) {
-		int item = atoi(*token);
-		*token = strtok(NULL, " ");
+	while (token != NULL) {
+		int item = atoi(token);
+		token = strtok(NULL, " ");
 
-		// printf("%i", skip);
-		// if (c == skip) {
-		// 	continue;
-		// }
+		if (c == skip) {
+			last_token = item;
+			c++;
+			continue;
+		}
 
 		// First one should always pass
 		if (c == 0) {
@@ -133,6 +136,17 @@ int level_loop(char **token, int skip) {
 	return faults;
 }
 
+int get_len(char *content) {
+
+	char *token = strtok(content, " ");
+	int c = 0;
+	while (token != NULL) {
+		c++;
+		token = strtok(NULL, " ");
+	}
+	return c;
+}
+
 int part2() {
 
 	int safe_count = 0;
@@ -142,14 +156,17 @@ int part2() {
 	fptr = fopen("small-input.txt", "r");
 
 	while (fgets(content, 100, fptr)) {
-		int tokenlen = strlen(content);
-		char *token = strtok(content, " ");
+		char lenclone[100];
+		strcpy(lenclone, content);
+		char clone[100];
+		strcpy(clone, content);
 
-		int faults = level_loop(&token, -1);
+		int len = get_len(lenclone);
+		int faults = level_loop(content, -1);
 
-		if (token == NULL) {
-			continue;
-		}
+		// if (token == NULL) {
+		// 	continue;
+		// }
 
 		if (faults > 1) {
 			continue;
@@ -158,10 +175,13 @@ int part2() {
 		bool safe = false;
 
 		if (faults == 1) {
-			for (int i = 0; i < tokenlen; i++) {
-				int new = level_loop(&token, i);
+			for (int i = 0; i < len; i++) {
+				char inner[100];
+				strcpy(inner, clone);
 
-				if (level_loop(&token, i)) {
+				int new = level_loop(inner, i);
+
+				if (new == 0) {
 					safe = true;
 				}
 			}
