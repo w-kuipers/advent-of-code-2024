@@ -3,94 +3,28 @@
 #include <stdlib.h>
 #include <string.h>
 
-int part1() {
-	int safe_count = 0;
-
-	FILE *fptr;
-	char content[100];
-	fptr = fopen("input.txt", "r");
-
-	while (fgets(content, 100, fptr)) {
-		char *token = strtok(content, " ");
-		int last_token = -1;
-		bool is_safe = true;
-
-		// 0 is not set, 1 is asc, 2 is desc
-		int direction = 0;
-
-		int c = 0;
-		while (token != NULL) {
-			int item = atoi(token);
-			token = strtok(NULL, " ");
-
-			// First one should always pass
-			if (c == 0) {
-				last_token = item;
-				c++;
-				continue;
-			}
-
-			// When the current level equals the last, report is unsafe
-			if (item == last_token) {
-				is_safe = false;
-				break;
-			}
-
-			// With the second iteration determine direction
-			if (c == 1) {
-				if (item > last_token) {
-					direction = 1;
-				} else {
-					direction = 2;
-				}
-			}
-
-			// Difference can must be at least 1 and max 4
-			int diff = abs(item - last_token);
-			if (diff < 1 || diff > 3) {
-				is_safe = false;
-				break;
-			}
-
-			if (direction == 1 && item < last_token) {
-				is_safe = false;
-				break;
-			}
-
-			if (direction == 2 && item > last_token) {
-				is_safe = false;
-				break;
-			}
-
-			last_token = item;
-			c++;
-		}
-
-		if (is_safe) {
-			safe_count += 1;
-		}
-	}
-
-	return safe_count;
-}
-
-int level_loop(char *content, int skip) {
+bool level_loop(char *content, int skip) {
 	int last_token = -1;
 	int faults = 0;
+	bool is_safe = true;
 
 	char *token = strtok(content, " ");
+
+	if (token == NULL) {
+		return false;
+	}
 
 	// 0 is not set, 1 is asc, 2 is desc
 	int direction = 0;
 
 	int c = 0;
+
 	while (token != NULL) {
 		int item = atoi(token);
 		token = strtok(NULL, " ");
 
 		if (c == skip) {
-			last_token = item;
-			c++;
+			skip = -1;
 			continue;
 		}
 
@@ -103,7 +37,7 @@ int level_loop(char *content, int skip) {
 
 		// When the current level equals the last, report is unsafe
 		if (item == last_token) {
-			faults += 1;
+			return false;
 		}
 
 		// With the second iteration determine direction
@@ -118,22 +52,22 @@ int level_loop(char *content, int skip) {
 		// Difference can must be at least 1 and max 4
 		int diff = abs(item - last_token);
 		if (diff < 1 || diff > 3) {
-			faults += 1;
+			return false;
 		}
 
 		if (direction == 1 && item < last_token) {
-			faults += 1;
+			return false;
 		}
 
 		if (direction == 2 && item > last_token) {
-			faults += 1;
+			return false;
 		}
 
 		last_token = item;
 		c++;
 	}
 
-	return faults;
+	return true;
 }
 
 int get_len(char *content) {
@@ -153,41 +87,54 @@ int part2() {
 
 	FILE *fptr;
 	char content[100];
-	fptr = fopen("small-input.txt", "r");
+	fptr = fopen("input.txt", "r");
 
 	while (fgets(content, 100, fptr)) {
 		char lenclone[100];
-		strcpy(lenclone, content);
 		char clone[100];
+
+		strcpy(lenclone, content);
 		strcpy(clone, content);
 
 		int len = get_len(lenclone);
-		int faults = level_loop(content, -1);
+		bool initially_safe = level_loop(content, -1);
 
-		// if (token == NULL) {
-		// 	continue;
-		// }
-
-		if (faults > 1) {
+		if (initially_safe) {
+			safe_count += 1;
 			continue;
 		}
 
-		bool safe = false;
+		bool safe = initially_safe;
 
-		if (faults == 1) {
+		if (!initially_safe) {
 			for (int i = 0; i < len; i++) {
 				char inner[100];
 				strcpy(inner, clone);
 
-				int new = level_loop(inner, i);
-
-				if (new == 0) {
+				if (level_loop(inner, i)) {
 					safe = true;
+					break;
 				}
 			}
 		}
 
-		if (faults == 0 || safe == true) {
+		if (safe == true) {
+			safe_count += 1;
+		}
+	}
+
+	return safe_count;
+}
+
+int part1() {
+	int safe_count = 0;
+
+	FILE *fptr;
+	char content[100];
+	fptr = fopen("input.txt", "r");
+
+	while (fgets(content, 100, fptr)) {
+		if (level_loop(content, -1)) {
 			safe_count += 1;
 		}
 	}
