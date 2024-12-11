@@ -13,14 +13,17 @@ int isnumeric(const char *str) {
 }
 
 void parse_functions(char *val, int values[2]) {
+	char *valclone = strdup(val);
+	if (!valclone) {
+		free(valclone);
+		return;
+	}
 
-	char valclone[100];
-	strcpy(valclone, val);
-
-	char *t = strtok(valclone, ",");
+	char *tptr;
+	char *t = strtok_r(valclone, ",", &tptr);
 	int c = 0;
 	while (t != NULL) {
-		if (c == 2) {
+		if (c > 1) {
 			values[0] = -1;
 			values[1] = -1;
 			break;
@@ -33,10 +36,11 @@ void parse_functions(char *val, int values[2]) {
 			values[c] = param;
 		}
 
-		t = strtok(NULL, ",");
-
+		t = strtok_r(NULL, ",", &tptr);
 		c++;
 	}
+
+	free(valclone);
 }
 
 int part1(char *input) {
@@ -48,14 +52,21 @@ int part1(char *input) {
 		// If mul is directly followed with "(", it could be a function
 		if (input[3] == '(') {
 			// Find the index for the ")"
-			char *e;
-			int index;
-			e = strchr(input, ')');
-			index = (int)(e - input);
+			char *e = strchr(input, ')');
+			if (!e) {
+				input++;
+				continue;
+			}
+			int index = (int)(e - input);
 
 			// Get the substring that is between the "(" and ")"
 			int len = (index)-4;
 			char *params = malloc(len + 1);
+			if (!params) {
+				input++;
+				free(params);
+				continue;
+			}
 			strncpy(params, input + 4, len);
 			params[len] = '\0';
 
@@ -65,6 +76,8 @@ int part1(char *input) {
 			if (values[0] != -1 && values[1] != -1) {
 				answer += values[0] * values[1];
 			}
+
+			free(params);
 		}
 
 		input++;
@@ -74,8 +87,10 @@ int part1(char *input) {
 }
 
 int part2(char *input) {
+
 	int answer = 0;
-	char *tok = strtok(input, "do");
+	char *tokptr;
+	char *tok = strtok_r(input, "do", &tokptr);
 
 	// 0 for do 1 for don't
 	int type = 0;
@@ -84,90 +99,45 @@ int part2(char *input) {
 	while (tok != NULL) {
 
 		// Find the index for the ")"
-		char *e;
-		int index;
-		e = strchr(tok, ')');
-		index = (int)(e - tok);
+		char *e = strchr(tok, ')');
+
+		if (!e) {
+			tok = strtok_r(NULL, "do", &tokptr);
+			c++;
+			continue;
+		}
+
+		int index = (int)(e - tok);
 
 		// Get the substring that is between the "do" and ")"
-		int len = index;
-		char *params = malloc(len + 1);
-		strncpy(params, tok, len);
-		params[len] = '\0';
-
-		if (strcmp(params, "n't(") == 0) {
-			type = 1;
+		char *fntype = malloc(index + 1);
+		if (!fntype) {
+			tok = strtok_r(NULL, "do", &tokptr);
+			free(fntype);
+			c++;
+			continue;
 		}
+		strncpy(fntype, tok, index);
+		fntype[index] = '\0';
 
-		if (strcmp(params, "(") == 0) {
-			type = 0;
+		if (c > 0) {
+			if (strcmp(fntype, "n't(") == 0) {
+				type = 1;
+			}
+
+			if (strcmp(fntype, "(") == 0) {
+				type = 0;
+			}
 		}
-
-		printf("type: %i\n\n\n", type);
 
 		if (type == 0) {
-			int values[2];
-			parse_functions(params, values);
-
-			// printf("%i - %i\n", values[0], values[1]);
-
-			// if (values[0] != -1 && values[1] != -1) {
-			// 	answer += values[0] * values[1];
-			// }
+			answer += part1(tok);
 		}
 
-		tok = strtok(NULL, "do");
+		tok = strtok_r(NULL, "do", &tokptr);
+		free(fntype);
 		c++;
 	}
-
-	// char sub[] = "mul";
-	//
-	// while ((input = strstr(input, sub)) != NULL) {
-	//
-	// 	// If mul is directly followed with "(", it could be a function
-	// 	if (input[3] == '(') {
-	// 		// Find the index for the ")"
-	// 		char *e;
-	// 		int index;
-	// 		e = strchr(input, ')');
-	// 		index = (int)(e - input);
-	//
-	// 		// Get the substring that is between the "(" and ")"
-	// 		int len = (index)-4;
-	// 		char *params = malloc(len + 1);
-	// 		strncpy(params, input + 4, len);
-	// 		params[len] = '\0';
-	//
-	// 		// Get the 2 parameter values
-	// 		char *tok = strtok(params, ",");
-	// 		int values[2];
-	// 		int c = 0;
-	// 		while (tok != NULL) {
-	// 			if (c == 2) {
-	// 				values[0] = -1;
-	// 				values[1] = -1;
-	// 				break;
-	// 			}
-	//
-	// 			if (!isnumeric(tok)) {
-	// 				values[c] = -1;
-	// 			} else {
-	// 				int param = atoi(tok);
-	// 				values[c] = param;
-	// 			}
-	//
-	// 			tok = strtok(NULL, ",");
-	//
-	// 			c++;
-	// 		}
-	//
-	// 		if (values[0] != -1 && values[1] != -1) {
-	// 			answer += values[0] * values[1];
-	// 		}
-	// 	}
-	//
-	// 	input++;
-	// }
 
 	return answer;
 }
@@ -178,12 +148,13 @@ int main() {
 	char *buffer;
 	long file_size;
 
-	file = fopen("small-input2.txt", "r");
+	// file = fopen("small-input2.txt", "r");
 	// file = fopen("small-input.txt", "r");
-	// file = fopen("input.txt", "r");
+	file = fopen("input.txt", "r");
 
 	if (file == NULL) {
 		printf("Error reading input\n");
+		return -1;
 	}
 
 	fseek(file, 0, SEEK_END);
@@ -196,9 +167,15 @@ int main() {
 
 	buffer[file_size] = '\0';
 
+	char *buffer_copy = strdup(buffer);
+	if (!buffer_copy) {
+		free(buffer);
+		return -1;
+	}
+
 	if (buffer) {
-		printf("Day 2 - Part 1: %i\n", part1(buffer));
-		printf("Day 2 - Part 2: %i\n", part2(buffer));
+		printf("Day 3 - Part 1: %i\n", part1(buffer));
+		printf("Day 3 - Part 2: %i\n", part2(buffer_copy));
 	}
 
 	free(buffer);
